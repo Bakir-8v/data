@@ -1,62 +1,680 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول وإنشاء حساب</title>
+    <title>لوحة تحكم الرسائل - CyberNet Terminal</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
+        /* ==================== GLOBAL STYLES ==================== */
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+
+        :root {
+            --dark-bg: #000000;
+            --main-bg: #0a0a0a;
+            --terminal-green: #00ff00;
+            --terminal-light-green: #00cc00;
+            --text-color: #00cc00;
+            --error-color: #ff3300;
+            --border-color: #006600;
+            --font-terminal: 'VT323', monospace;
+            --font-main: 'Tajawal', sans-serif;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f4;
-            padding: 50px;
-        }
-        .container {
-            background: white;
+            font-family: var(--font-terminal);
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            display: inline-block;
+            overflow-y: auto;
+            animation: glitchBackground 30s infinite alternate;
         }
-        input {
+
+        @keyframes glitchBackground {
+            0% { background-color: var(--dark-bg); }
+            10% { background-color: #000500; }
+            20% { background-color: var(--dark-bg); }
+            30% { background-color: #000300; }
+            40% { background-color: var(--dark-bg); }
+            50% { background-color: #000600; }
+            60% { background-color: var(--dark-bg); }
+            70% { background-color: #000400; }
+            80% { background-color: var(--dark-bg); }
+            90% { background-color: #000700; }
+            100% { background-color: var(--dark-bg); }
+        }
+
+        /* ==================== CONTAINER & HEADERS ==================== */
+        .container {
+            background-color: var(--main-bg);
+            border-radius: 0;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            padding: 30px;
+            width: 90%;
+            max-width: 900px;
+            animation: terminalPulse 2s infinite alternate, fadeIn 0.8s ease-in-out;
+            border: 2px solid var(--border-color);
+            box-sizing: border-box;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes terminalPulse {
+            from { box-shadow: 0 0 15px rgba(0, 255, 0, 0.4); border-color: var(--border-color); }
+            to { box-shadow: 0 0 25px rgba(0, 255, 0, 0.7); border-color: var(--terminal-light-green); }
+        }
+
+        h1 {
+            color: var(--terminal-green);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 3.5em;
+            font-family: var(--font-terminal);
+            text-shadow: 0 0 15px var(--terminal-green);
+            letter-spacing: 2px;
+            animation: textGlitch 5s infinite alternate;
+        }
+
+        @keyframes textGlitch {
+            0% { text-shadow: 0 0 15px var(--terminal-green); }
+            5% { text-shadow: 1px 1px 15px var(--terminal-green), -1px -1px 15px #ff00ff; }
+            10% { text-shadow: 0 0 15px var(--terminal-green); }
+            15% { text-shadow: -2px 0 15px var(--terminal-green), 2px 0 15px #00ffff; }
+            20% { text-shadow: 0 0 15px var(--terminal-green); }
+            25% { text-shadow: 0 0 15px var(--terminal-green); }
+            100% { text-shadow: 0 0 15px var(--terminal-green); }
+        }
+
+        /* ==================== FORM & INPUTS ==================== */
+        #auth-container {
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            text-align: right;
+        }
+
+        .input-group label {
             display: block;
-            width: 100%;
-            margin: 10px 0;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            margin-bottom: 8px;
+            color: var(--terminal-light-green);
+            font-weight: normal;
+            font-size: 1.2em;
         }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
+
+        .input-group input {
             width: 100%;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            background-color: #050505;
+            color: var(--terminal-green);
+            font-size: 1.1em;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            text-align: left;
+            direction: ltr;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--terminal-green);
+            box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.5);
+            background-color: #001a00;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 0;
+            background-color: var(--terminal-green);
+            color: var(--dark-bg);
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            margin-top: 10px;
+        }
+        
+        .auth-btn:hover {
+            background-color: var(--terminal-light-green);
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+        }
+
+        #auth-error, #global-update-error {
+            color: var(--error-color);
+            margin-top: 10px;
+            font-size: 1em;
+            text-align: right;
+            font-weight: normal;
+        }
+        
+        /* New section for global controls */
+        #global-controls {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px dashed var(--border-color);
+            background-color: #050505;
+            border-radius: 0;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.2);
+        }
+        
+        .global-controls-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .global-controls-row label {
+            white-space: nowrap;
+            font-size: 1.2em;
+        }
+        
+        .global-controls-row input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            background-color: #000;
+            color: var(--terminal-green);
+            font-family: var(--font-terminal);
+            font-size: 1.1em;
+            text-align: left;
+        }
+        
+        .update-all-db-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            background-color: var(--terminal-green);
+            color: var(--dark-bg);
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        
+        .update-all-db-btn:hover {
+            background-color: var(--terminal-light-green);
+            transform: translateY(-2px);
+        }
+        
+        /* ==================== GROUPED MESSAGES ==================== */
+        .uid-group-container {
+            margin-bottom: 40px;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 0;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+            animation: fadeIn 0.8s ease-in-out;
+            position: relative;
+        }
+        
+        .update-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 15px;
+        }
+
+        .update-controls label {
+            white-space: nowrap;
+        }
+
+        .update-controls input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            background-color: #050505;
+            color: var(--terminal-green);
+            font-size: 1em;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .update-db-btn {
+            padding: 10px;
+            border: none;
+            background-color: var(--terminal-green);
+            color: var(--dark-bg);
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .update-db-btn:hover {
+            background-color: var(--terminal-light-green);
+        }
+
+        .uid-group-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--terminal-green);
+            border-bottom: 2px solid var(--terminal-light-green);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 5px var(--terminal-green);
+            direction: ltr;
+            text-align: left;
+        }
+
+        .message-card {
+            background-color: #101010;
+            border: 1px dashed var(--border-color);
+            border-radius: 0;
+            margin-bottom: 15px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+            position: relative;
+        }
+
+        .message-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            background-color: #0a0a0a;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .sender-info {
+            color: var(--terminal-green);
+            font-weight: normal;
+            font-size: 1.4em;
+            font-family: var(--font-terminal);
+        }
+
+        .message-body {
+            color: var(--text-color);
+            margin: 0;
+            font-size: 1.1em;
+            line-height: 1.6;
+            text-align: left;
+            direction: ltr;
+        }
+
+        .loading, .error {
+            text-align: center;
+            font-style: normal;
+            color: var(--terminal-green);
+            padding: 20px;
+            font-size: 1.2em;
+            text-shadow: 0 0 5px var(--terminal-green);
+        }
+
+        /* ==================== MEDIA QUERIES ==================== */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            h1 { font-size: 2.5em; }
+            .message-card { padding: 12px; }
+            .uid-group-header { font-size: 1.3em; }
+            .message-body { font-size: 1em; }
+            .input-group input { padding: 12px; }
+            .auth-btn { padding: 12px; font-size: 1.1em; }
+            .update-controls, .global-controls-row { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>تسجيل الدخول</h1>
-        <input type="text" id="loginUser" placeholder="اسم المستخدم">
-        <input type="password" id="loginPass" placeholder="كلمة المرور">
-        <button onclick="login()">تسجيل الدخول</button>
-        <h2>أو</h2>
-        <h1>إنشاء حساب</h1>
-        <input type="text" id="signupUser" placeholder="اسم المستخدم">
-        <input type="password" id="signupPass" placeholder="كلمة المرور">
-        <button onclick="signup()">إنشاء حساب</button>
+
+    <div class="container" id="main-container">
+    
+        <div id="auth-container">
+            <h1>ACCESS GRANTED</h1>
+            <div class="input-group">
+                <label for="email">:: ENTER USERID ::</label>
+                <input type="email" id="email" required placeholder="user@domain.com">
+            </div>
+            <div class="input-group">
+                <label for="password">:: ENTER PASSWORD ::</label>
+                <input type="password" id="password" required placeholder="********">
+            </div>
+            <button class="auth-btn" id="login-btn">:: INITIATE LOGIN SEQUENCE ::</button>
+            <div id="auth-error"></div>
+        </div>
+
+        <div id="data-container" style="display: none;">
+            <h1>:: INTRUSION LOG ::</h1>
+            
+            <div id="global-controls">
+                <h2>:: GLOBAL DB UPDATE UTILITY ::</h2>
+                <div class="global-controls-row">
+                    <label for="global-db-pass">:: AUTH PASSWORD ::</label>
+                    <input type="password" id="global-db-pass">
+                </div>
+                <div class="global-controls-row">
+                    <label for="global-db-input">:: GLOBAL DB VALUE ::</label>
+                    <input type="number" id="global-db-input" value="1" min="0">
+                </div>
+                <button class="update-all-db-btn" id="update-all-db-btn">:: EXECUTE GLOBAL UPDATE ::</button>
+                <div id="global-update-error"></div>
+            </div>
+            
+            <div id="messagesData">
+                <div class="loading">
+                    <p>:: LOADING DATASTREAM ::</p>
+                </div>
+            </div>
+        </div>
     </div>
+
     <script>
-        function login() {
-            alert("تم تسجيل الدخول بنجاح!");
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6ddEafCqwcxSYCcjd-OhsxAaYVDhIPxc",
+            authDomain: "chatt-ed0cd.firebaseapp.com",
+            databaseURL: "https://chatt-ed0cd-default-rtdb.firebaseio.com",
+            projectId: "chatt-ed0cd",
+            storageBucket: "chatt-ed0cd.appspot.com",
+            messagingSenderId: "483114317960",
+            appId: "1:483114317960:web:627e9657cccd3e73c9c73d",
+            measurementId: "G-L7XL"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // DOM Elements
+        const authContainer = document.getElementById('auth-container');
+        const dataContainer = document.getElementById('data-container');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const authErrorDiv = document.getElementById('auth-error');
+        const messagesDataDiv = document.getElementById('messagesData');
+        const globalDbInput = document.getElementById('global-db-input');
+        const updateAllDbBtn = document.getElementById('update-all-db-btn');
+        const globalDbPass = document.getElementById('global-db-pass'); // New password field
+        const globalUpdateErrorDiv = document.getElementById('global-update-error'); // New error div
+
+        let logoutTimeout;
+
+        // --- Data Fetching and Display Functions ---
+
+        /**
+         * Fetches messages from Firebase and groups them by UID before displaying.
+         */
+        function fetchAndDisplayMessages() {
+            const usersRef = database.ref('users');
+            usersRef.on('value', (snapshot) => {
+                const users = snapshot.val();
+                messagesDataDiv.innerHTML = '';
+                let messagesFound = false;
+                let groupedMessages = {};
+
+                if (users) {
+                    for (const uid in users) {
+                        const userData = users[uid];
+                        if (userData && userData.sms) {
+                            const smsData = userData.sms;
+                            const key = userData.key || 'UNKNOWN_DEVICE';
+                            const dbValue = userData.db !== undefined ? userData.db : 'N/A';
+
+                            if (Array.isArray(smsData)) {
+                                smsData.forEach(smsItem => {
+                                    if (smsItem && smsItem.messageBody && smsItem.sender) {
+                                        messagesFound = true;
+                                        if (!groupedMessages[uid]) {
+                                            groupedMessages[uid] = { key: key, db: dbValue, messages: [] };
+                                        }
+                                        groupedMessages[uid].messages.push(smsItem);
+                                    }
+                                });
+                            } else if (typeof smsData === 'object' && smsData !== null) {
+                                for (const smsKey in smsData) {
+                                    const smsItem = smsData[smsKey];
+                                    if (smsItem && smsItem.messageBody && smsItem.sender) {
+                                        messagesFound = true;
+                                        if (!groupedMessages[uid]) {
+                                            groupedMessages[uid] = { key: key, db: dbValue, messages: [] };
+                                        }
+                                        groupedMessages[uid].messages.push(smsItem);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (messagesFound) {
+                    for (const uid in groupedMessages) {
+                        const groupContainer = document.createElement('div');
+                        groupContainer.classList.add('uid-group-container');
+
+                        const groupHeader = document.createElement('div');
+                        groupHeader.classList.add('uid-group-header');
+                        groupHeader.textContent = `UID: ${uid} | KEY: ${groupedMessages[uid].key} | DB: ${groupedMessages[uid].db}`;
+                        groupContainer.appendChild(groupHeader);
+                        
+                        const updateControls = document.createElement('div');
+                        updateControls.classList.add('update-controls');
+                        updateControls.innerHTML = `
+                            <label>DB Value:</label>
+                            <input type="number" class="db-input" value="${groupedMessages[uid].db}" min="0">
+                            <button class="update-db-btn" data-uid="${uid}">UPDATE DB</button>
+                        `;
+                        groupContainer.appendChild(updateControls);
+
+                        groupedMessages[uid].messages.forEach(message => {
+                            displayMessage(groupContainer, message.sender, message.messageBody);
+                        });
+
+                        messagesDataDiv.appendChild(groupContainer);
+                    }
+                    
+                    attachUpdateListeners();
+                    
+                } else {
+                    messagesDataDiv.innerHTML = '<div class="error"><p>:: NO DATA STREAMS DETECTED ::</p></div>';
+                }
+            }, (error) => {
+                console.error("ERROR: DATABASE ACCESS FAILURE:", error);
+                messagesDataDiv.innerHTML = '<div class="error"><p>:: DATABASE OFFLINE. RETRYING... ::</p></div>';
+            });
         }
-        function signup() {
-            alert("تم إنشاء الحساب بنجاح!");
+        
+        /**
+         * Attaches event listeners to all dynamically created individual update buttons.
+         */
+        function attachUpdateListeners() {
+            document.querySelectorAll('.update-db-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const uid = event.target.dataset.uid;
+                    const inputElement = event.target.closest('.update-controls').querySelector('.db-input');
+                    const newValue = inputElement.value;
+                    
+                    if (newValue !== null && newValue !== '') {
+                        updateUserDbField(uid, parseInt(newValue));
+                    } else {
+                        alert(':: ENTER A VALID NUMBER ::');
+                    }
+                });
+            });
         }
+
+        /**
+         * Updates a specific user's 'db' field.
+         * @param {string} uid The user's UID.
+         * @param {number} value The new value for the 'db' field.
+         */
+        function updateUserDbField(uid, value) {
+            const userRef = database.ref(`users/${uid}`);
+            userRef.update({ db: value })
+                .then(() => {
+                    alert(`:: DB VALUE FOR USER ${uid} UPDATED TO ${value} ::`);
+                })
+                .catch((error) => {
+                    alert(':: DATABASE UPDATE FAILED. ERROR: ' + error.message);
+                    console.error('Failed to update `db` field:', error);
+                });
+        }
+
+        /**
+         * Updates all user nodes with a new 'db' field value.
+         * @param {number} newValue The new value for the 'db' field.
+         */
+        function updateAllUsersDbField(newValue) {
+            const usersRef = database.ref('users');
+            usersRef.once('value').then((snapshot) => {
+                const updates = {};
+                snapshot.forEach((childSnapshot) => {
+                    const uid = childSnapshot.key;
+                    updates[`${uid}/db`] = parseInt(newValue);
+                });
+
+                if (Object.keys(updates).length > 0) {
+                    usersRef.update(updates)
+                        .then(() => {
+                            alert(':: DATABASE UPDATE SUCCESSFUL. DB FIELD SET FOR ALL USERS ::');
+                            console.log('Database field `db` updated for all users.');
+                        })
+                        .catch((error) => {
+                            alert(':: DATABASE UPDATE FAILED. ERROR: ' + error.message);
+                            console.error('Failed to update database field `db`:', error);
+                        });
+                } else {
+                    alert(':: NO USERS FOUND TO UPDATE ::');
+                }
+            }).catch((error) => {
+                alert(':: DATABASE READ FAILED. ERROR: ' + error.message);
+                console.error('Failed to read users from database:', error);
+            });
+        }
+
+        /**
+         * Creates and appends a single message card.
+         * @param {HTMLElement} parentContainer The container to append the message card to.
+         * @param {string} sender The name of the message sender.
+         * @param {string} messageBody The content of the message.
+         */
+        function displayMessage(parentContainer, sender, messageBody) {
+            const messageCard = document.createElement('div');
+            messageCard.classList.add('message-card');
+
+            const header = document.createElement('div');
+            header.classList.add('message-header');
+            const senderSpan = document.createElement('span');
+            senderSpan.classList.add('sender-info');
+            senderSpan.textContent = `SENDER: ${sender}`;
+            header.appendChild(senderSpan);
+
+            const messageBodyP = document.createElement('p');
+            messageBodyP.classList.add('message-body');
+            messageBodyP.textContent = `MESSAGE: ${messageBody}`;
+
+            messageCard.appendChild(header);
+            messageCard.appendChild(messageBodyP);
+            parentContainer.appendChild(messageCard);
+        }
+
+        // --- Authentication and Timer Functions ---
+        
+        /**
+         * Starts a timer to automatically log out the user after a period of inactivity.
+         */
+        function startAutoLogoutTimer() {
+            const timeout = 5 * 60 * 1000;
+            logoutTimeout = setTimeout(() => {
+                auth.signOut();
+                alert(':: SESSION TERMINATED. RE-AUTHENTICATION REQUIRED ::');
+            }, timeout);
+        }
+
+        /**
+         * Resets the auto-logout timer on user activity.
+         */
+        function resetAutoLogoutTimer() {
+            clearTimeout(logoutTimeout);
+            startAutoLogoutTimer();
+        }
+
+        // --- Event Listeners ---
+        loginBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            authErrorDiv.textContent = '';
+            auth.signInWithEmailAndPassword(email, password)
+                .catch((error) => {
+                    let errorMessage;
+                    switch (error.code) {
+                        case 'auth/user-not-found':
+                        case 'auth/wrong-password':
+                            errorMessage = ':: ACCESS DENIED. INVALID CREDENTIALS ::';
+                            break;
+                        case 'auth/invalid-email':
+                            errorMessage = ':: SYNTAX ERROR. INVALID USERID FORMAT ::';
+                            break;
+                        default:
+                            errorMessage = ':: AUTHENTICATION FAILURE. UNKNOWN ERROR ::';
+                    }
+                    authErrorDiv.textContent = errorMessage;
+                });
+        });
+
+        // Add event listener for the new global update button
+        updateAllDbBtn.addEventListener('click', () => {
+            const enteredPassword = globalDbPass.value;
+            const newValue = globalDbInput.value;
+            globalUpdateErrorDiv.textContent = ''; // Clear previous errors
+
+            // Check the password first
+            if (enteredPassword !== '123') {
+                globalUpdateErrorDiv.textContent = ':: AUTHENTICATION FAILED. INVALID PASSWORD ::';
+                return;
+            }
+            
+            // Check the new value
+            if (newValue === null || newValue === '') {
+                globalUpdateErrorDiv.textContent = ':: ENTER A VALID NUMBER FOR GLOBAL UPDATE ::';
+                return;
+            }
+
+            updateAllUsersDbField(newValue);
+        });
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                authContainer.style.display = 'none';
+                dataContainer.style.display = 'block';
+                fetchAndDisplayMessages();
+                startAutoLogoutTimer();
+            } else {
+                authContainer.style.display = 'block';
+                dataContainer.style.display = 'none';
+                const usersRef = database.ref('users');
+                usersRef.off();
+                clearTimeout(logoutTimeout);
+            }
+        });
     </script>
+
 </body>
 </html>
